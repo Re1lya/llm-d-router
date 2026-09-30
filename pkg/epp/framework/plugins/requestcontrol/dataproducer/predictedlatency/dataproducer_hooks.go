@@ -19,6 +19,7 @@ package predictedlatency
 
 import (
 	"context"
+	"fmt"
 	"math"
 
 	"sigs.k8s.io/controller-runtime/pkg/log"
@@ -81,7 +82,15 @@ func (pl *PredictedLatency) Produce(ctx context.Context, request *fwksched.Infer
 	}
 
 	predictions, err := pl.generatePredictions(ctx, predictedLatencyCtx, endpoints)
-	if err == nil && len(predictions) == len(endpoints) {
+	if err == nil && len(predictions) != len(endpoints) {
+		err = newPredictionFailure(predictionFailureReasonLengthMismatch, fmt.Errorf(
+			"generated %d predictions for %d endpoints", len(predictions), len(endpoints)))
+	}
+	if err != nil {
+		if ctx.Err() == nil {
+			pl.recordPredictionFailure(ctx, err, len(endpoints))
+		}
+	} else {
 		pl.updateRequestContextWithPredictions(predictedLatencyCtx, predictions)
 
 		// Store predictions in endpoint attributes
