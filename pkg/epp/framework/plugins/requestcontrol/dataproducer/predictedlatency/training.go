@@ -239,7 +239,7 @@ func bulkPredictWithMetrics(
 	duration := time.Since(start)
 
 	if err != nil {
-		logger.V(logutil.DEBUG).Error(err, "bulk prediction failed",
+		logger.V(logutil.DEBUG).Info("bulk prediction failed", "error", err,
 			"duration_ms", duration.Milliseconds(),
 			"request_count", len(bulkRequests))
 		return nil, newPredictionFailure(predictionFailureReasonPredictorError, err)
@@ -255,6 +255,12 @@ func bulkPredictWithMetrics(
 		return nil, newPredictionFailure(predictionFailureReasonLengthMismatch, fmt.Errorf(
 			"bulk prediction returned %d predictions for %d requests",
 			len(bulkResponse.Predictions), len(bulkRequests)))
+	}
+
+	if bulkResponse.FailedPredictions > 0 {
+		return nil, newPredictionFailure(predictionFailureReasonPredictorError, fmt.Errorf(
+			"bulk prediction reported %d failed predictions out of %d requests",
+			bulkResponse.FailedPredictions, len(bulkRequests)))
 	}
 
 	if predictedLatencyContext != nil {

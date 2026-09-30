@@ -19,6 +19,7 @@ package predictedlatency
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"math"
 
@@ -87,7 +88,10 @@ func (pl *PredictedLatency) Produce(ctx context.Context, request *fwksched.Infer
 			"generated %d predictions for %d endpoints", len(predictions), len(endpoints)))
 	}
 	if err != nil {
-		if ctx.Err() == nil {
+		// A caller that explicitly cancels the request no longer needs a
+		// prediction. Producer deadlines still represent an unavailable
+		// prediction and must remain observable.
+		if !errors.Is(err, context.Canceled) {
 			pl.recordPredictionFailure(ctx, err, len(endpoints))
 		}
 	} else {

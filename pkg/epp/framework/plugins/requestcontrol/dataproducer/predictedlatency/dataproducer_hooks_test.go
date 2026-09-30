@@ -73,6 +73,14 @@ func TestProducePredictionFailureObservability(t *testing.T) {
 			}},
 			wantReason: predictionFailureReasonLengthMismatch,
 		},
+		{
+			name: "reported failed prediction",
+			predictor: &fixedBulkPredictor{mockPredictor: &mockPredictor{}, response: &latencypredictorclient.BulkPredictionResponse{
+				Predictions:       []latencypredictorclient.PredictionResponse{{}},
+				FailedPredictions: 1,
+			}},
+			wantReason: predictionFailureReasonPredictorError,
+		},
 	}
 
 	for _, tt := range tests {
